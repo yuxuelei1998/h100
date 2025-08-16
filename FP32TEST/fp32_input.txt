@@ -1,0 +1,2 @@
+ADD, RND_ZERO, 0xfefe0000, 0x407ff800, 0xc0ffff80
+CMPEQ, RND_PLUS_INF, 0xbfffffe0, 0x33dfffff, 0xbfffffe0
