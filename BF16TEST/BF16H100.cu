@@ -60,7 +60,6 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
     
     TestCase tc = testCases[idx];
     
-    // 直接从位模式创建BF16值
     __nv_bfloat16 a = __nv_bfloat16(__nv_bfloat16_raw{tc.operandA});
     __nv_bfloat16 b = __nv_bfloat16(__nv_bfloat16_raw{tc.operandB});
     __nv_bfloat16 c = __nv_bfloat16(__nv_bfloat16_raw{tc.operandC});
@@ -91,7 +90,6 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
             res = __hfma(__hneg(a), b, __hneg(c));
             break;
         case CMPEQ:
-            // BF16比较返回位模式
             res = (a == c) ? __nv_bfloat16(__nv_bfloat16_raw{0xFFFF}) : __nv_bfloat16(__nv_bfloat16_raw{0x0000});
             break;
         case CMPLT:
@@ -113,7 +111,7 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
             res = (a > c) ? a : c;
             break;
         case UNORDERED:
-            res = (__hisnan(__bfloat162float(a)) || __hisnan(__bfloat162float(c))) 
+            res = (__hisnan(a) || __hisnan(c)) 
                   ? __nv_bfloat16(__nv_bfloat16_raw{0xFFFF}) 
                   : __nv_bfloat16(__nv_bfloat16_raw{0x0000});
             break;
@@ -125,7 +123,7 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
 
 // 解析十六进制字符串
 uint16_t parseHex(const std::string& hexStr) {
-    return static_cast<uint16_t>(std::stoul(hexStr, nullptr, 16) & 0xFFFF;
+    return static_cast<uint16_t>(std::stoul(hexStr, nullptr, 16));
 }
 
 // 读取输入文件
@@ -334,6 +332,6 @@ int main() {
     cudaStreamDestroy(stream);
     
     std::cout << "H100 BF16 测试完成，结果已写入 " << outputFilename << std::endl;
-    //std::cout << "编译建议: nvcc -arch=sm_90 -o BF16H100 BF16H100.cu\n";
+    // 编译建议: nvcc -arch=sm_90 -o BF16H100 BF16H100.cu
     return 0;
 }
