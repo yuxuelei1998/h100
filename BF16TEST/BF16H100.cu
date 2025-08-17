@@ -102,13 +102,19 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
             res = (a > c) ? __nv_bfloat16(__nv_bfloat16_raw{0xFFFF}) : __nv_bfloat16(__nv_bfloat16_raw{0x0000});
             break;
         case CMPLTNUM:
-            res = (a < c) ? a : c;
+            if (__hisnan(a)) res = c;
+	    else if (__hisnan(c)) res = a;
+	    else res = __hle(a, c) ? a : c;
             break;
         case CMPLENUM:
-            res = (a <= c) ? a : c;
+            if (__hisnan(a)) res = c;
+            else if (__hisnan(c)) res = a;
+            else res = __hlt(c, a) ? c : a;
             break;
         case CMPGTNUM:
-            res = (a > c) ? a : c;
+            if (__hisnan(a)) res = c;
+            else if (__hisnan(c)) res = a;
+            else res = __hge(a, c) ? a : c;
             break;
         case UNORDERED:
             res = (__hisnan(a) || __hisnan(c)) 

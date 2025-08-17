@@ -135,13 +135,13 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
             res = (a > c) ? __longlong_as_double(0xFFFFFFFFFFFFFFFF) : 0.0;
             break;
         case CMPLTNUM:
-            res = (a < c) ? a : c;
+            res = fmin(a, c);
             break;
         case CMPLENUM:
-            res = (a <= c) ? a : c;
+            res = fmin(a, c);
             break;
         case CMPGTNUM:
-            res = (a > c) ? a : c;
+            res = fmax(a, c);
             break;
         case UNORDERED:
             res = (isnan(a) || isnan(c)) ? __longlong_as_double(0xFFFFFFFFFFFFFFFF) : 0.0;

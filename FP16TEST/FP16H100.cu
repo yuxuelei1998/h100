@@ -101,13 +101,13 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
             res = (a > c) ? __ushort_as_half(0xFFFF) : __ushort_as_half(0x0000);
             break;
         case CMPLTNUM:
-            res = (a < c) ? a : c;
+            res = __hmin(a, c);
             break;
         case CMPLENUM:
-            res = (a <= c) ? a : c;
+            res = __hmin(a, c);
             break;
         case CMPGTNUM:
-            res = (a > c) ? a : c;
+            res = __hmax(a, c);
             break;
         case UNORDERED:
             res = (__hisnan(a) || __hisnan(c)) ? __ushort_as_half(0xFFFF) : __ushort_as_half(0x0000);
