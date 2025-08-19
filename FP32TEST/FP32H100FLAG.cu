@@ -11,13 +11,13 @@
 #include <cstdint>
 #include <cfenv>
 
-// 浮点异常标志 (匹配CUDA内部定义)
-#define FE_INVALID     0x01
-#define FE_DIVBYZERO   0x02
-#define FE_OVERFLOW    0x04
-#define FE_UNDERFLOW   0x08
-#define FE_INEXACT     0x10
-#define FE_DENORMAL    0x20
+// 使用CUDA特定的浮点异常标志定义
+#define CUDA_FE_INVALID     0x01
+#define CUDA_FE_DIVBYZERO   0x02
+#define CUDA_FE_OVERFLOW    0x04
+#define CUDA_FE_UNDERFLOW   0x08
+#define CUDA_FE_INEXACT     0x10
+#define CUDA_FE_DENORMAL    0x20
 
 // 操作码枚举
 enum Opcode {
@@ -62,13 +62,40 @@ std::map<std::string, RoundMode> roundModeMap = {
 
 // 异常标志名称映射
 std::map<uint32_t, std::string> flagNames = {
-    {FE_INVALID, "INVALID"},
-    {FE_DIVBYZERO, "DIVBYZERO"},
-    {FE_OVERFLOW, "OVERFLOW"},
-    {FE_UNDERFLOW, "UNDERFLOW"},
-    {FE_INEXACT, "INEXACT"},
-    {FE_DENORMAL, "DENORMAL"}
+    {CUDA_FE_INVALID, "INVALID"},
+    {CUDA_FE_DIVBYZERO, "DIVBYZERO"},
+    {CUDA_FE_OVERFLOW, "OVERFLOW"},
+    {CUDA_FE_UNDERFLOW, "UNDERFLOW"},
+    {CUDA_FE_INEXACT, "INEXACT"},
+    {CUDA_FE_DENORMAL, "DENORMAL"}
 };
+
+std::string toHexString(uint32_t value, int width = 8) {
+    std::stringstream ss;
+    ss << "0x" << std::hex << std::setw(width) << std::setfill('0') << value;
+    return ss.str();
+}
+
+// 格式化异常标志为可读字符串
+std::string formatFlags(uint32_t flags) {
+    if (flags == 0) return "NONE";
+    
+    std::string result;
+    for (const auto& pair : flagNames) {
+        if (flags & pair.first) {
+            if (!result.empty()) result += "|";
+            result += pair.second;
+            flags &= ~pair.first;
+        }
+    }
+    
+    if (flags != 0) {
+        if (!result.empty()) result += "|";
+        result += "UNKNOWN(0x" + toHexString(flags, 1) + ")";
+    }
+    
+    return result;
+}
 
 // CUDA内核：执行测试用例（添加异常检测）
 __global__ void executeTests(const TestCase* __restrict__ testCases, 
@@ -77,9 +104,12 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if (idx >= numTests) return;
     
-    // 初始化浮点环境
-    uint32_t initial_flags = __fenv_getflags();
-    __fenv_setflags(0);
+    // 初始化浮点环境 - 使用CUDA内置函数
+    unsigned int initial_flags;
+    asm volatile ("mov.u32 %0, %envreg1;" : "=r"(initial_flags)); // 保存环境寄存器
+    
+    // 清除所有标志
+    asm volatile ("mov.u32 %envreg1, 0;");
     
     TestCase tc = testCases[idx];
     const float a = __uint_as_float(tc.operandA);
@@ -172,12 +202,13 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
     }
     
     // 获取并存储异常标志
-    uint32_t flags = __fenv_getflags();
+    unsigned int flags;
+    asm volatile ("mov.u32 %0, %envreg1;" : "=r"(flags));
     results[idx].result = __float_as_uint(res);
     results[idx].flags = flags;
     
     // 恢复原始浮点环境
-    __fenv_setflags(initial_flags);
+    asm volatile ("mov.u32 %envreg1, %0;" : : "r"(initial_flags));
 }
 
 // 解析十六进制字符串
@@ -236,32 +267,6 @@ std::vector<TestCase> readInputFile(const std::string& filename) {
     }
     
     return testCases;
-}
-
-std::string formatFlags(uint32_t flags) {
-    if (flags == 0) return "NONE";
-    
-    std::string result;
-    for (const auto& pair : flagNames) {
-        if (flags & pair.first) {
-            if (!result.empty()) result += "|";
-            result += pair.second;
-            flags &= ~pair.first;
-        }
-    }
-    
-    if (flags != 0) {
-        if (!result.empty()) result += "|";
-        result += "UNKNOWN(0x" + toHexString(flags) + ")";
-    }
-    
-    return result;
-}
-
-std::string toHexString(uint32_t value, int width = 8) {
-    std::stringstream ss;
-    ss << "0x" << std::hex << std::setw(width) << std::setfill('0') << value;
-    return ss.str();
 }
 
 // 写输出文件（添加异常标志输出）
@@ -373,6 +378,6 @@ int main() {
     cudaStreamDestroy(stream);
     
     std::cout << "H100 FP32 测试完成，结果已写入 " << outputFilename << std::endl;
-    //std::cout << "编译建议: nvcc -arch=sm_90 -o FP32H100 FP32H100.cu\n";
+    std::cout << "编译建议: nvcc -arch=sm_90 -o FP32H100FLAG FP32H100FLAG.cu\n";
     return 0;
 }
