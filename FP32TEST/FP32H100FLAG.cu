@@ -70,6 +70,7 @@ std::map<uint32_t, std::string> flagNames = {
     {CUDA_FE_DENORMAL, "DENORMAL"}
 };
 
+// 辅助函数：将数值转为十六进制字符串
 std::string toHexString(uint32_t value, int width = 8) {
     std::stringstream ss;
     ss << "0x" << std::hex << std::setw(width) << std::setfill('0') << value;
@@ -104,12 +105,12 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if (idx >= numTests) return;
     
-    // 初始化浮点环境 - 使用CUDA内置函数
-    unsigned int initial_flags;
-    asm volatile ("mov.u32 %0, %envreg1;" : "=r"(initial_flags)); // 保存环境寄存器
+    // 保存当前的浮点状态寄存器
+    unsigned int initial_fpsr;
+    asm("mov.u32 %0, %fpsr;" : "=r"(initial_fpsr));
     
-    // 清除所有标志
-    asm volatile ("mov.u32 %envreg1, 0;");
+    // 清除所有异常标志
+    asm("mov.u32 %fpsr, 0;");
     
     TestCase tc = testCases[idx];
     const float a = __uint_as_float(tc.operandA);
@@ -203,12 +204,14 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
     
     // 获取并存储异常标志
     unsigned int flags;
-    asm volatile ("mov.u32 %0, %envreg1;" : "=r"(flags));
+    asm("mov.u32 %0, %fpsr;" : "=r"(flags));
     results[idx].result = __float_as_uint(res);
-    results[idx].flags = flags;
     
-    // 恢复原始浮点环境
-    asm volatile ("mov.u32 %envreg1, %0;" : : "r"(initial_flags));
+    // 提取异常标志位（低5位）
+    results[idx].flags = flags & 0x1F;
+    
+    // 恢复原始浮点状态寄存器
+    asm("mov.u32 %fpsr, %0;" : : "r"(initial_fpsr));
 }
 
 // 解析十六进制字符串
@@ -378,6 +381,6 @@ int main() {
     cudaStreamDestroy(stream);
     
     std::cout << "H100 FP32 测试完成，结果已写入 " << outputFilename << std::endl;
-    std::cout << "编译建议: nvcc -arch=sm_90 -o FP32H100FLAG FP32H100FLAG.cu\n";
+    //std::cout << "编译建议: nvcc -arch=sm_90 -o FP32H100FLAG FP32H100FLAG.cu\n";
     return 0;
 }
