@@ -70,7 +70,6 @@ std::map<uint32_t, std::string> flagNames = {
     {CUDA_FE_DENORMAL, "DENORMAL"}
 };
 
-// 辅助函数：将数值转为十六进制字符串
 std::string toHexString(uint32_t value, int width = 8) {
     std::stringstream ss;
     ss << "0x" << std::hex << std::setw(width) << std::setfill('0') << value;
