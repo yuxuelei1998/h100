@@ -142,7 +142,7 @@ std::vector<TestCase> readInputFile(const std::string& filename) {
             tokens.push_back(token);
         }
         
-        if (tokens.size() == 18) {
+        if (tokens.size() == 19) {
             TestCase tc;
             if (opcodeMap.find(tokens[0]) != opcodeMap.end()) {
                 tc.opcode = opcodeMap[tokens[0]];
