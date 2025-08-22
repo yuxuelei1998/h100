@@ -1,3 +1,3 @@
-Opcode, Rnd, Operand A, Operand B, Operand C, Result
-ADD, RND_ZERO, 0xfefe0000, 0x407ff800, 0xc0ffff80, 0xfefe0000
-CMPEQ, RND_PLUS_INF, 0xbfffffe0, 0x33dfffff, 0xbfffffe0, 0xffffffff
+version https://git-lfs.github.com/spec/v1
+oid sha256:b57b47ae6537250ddd65b7d3f41c8ed738be55831ebcfe2e81749c71c31c3633
+size 186
