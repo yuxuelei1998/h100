@@ -12,7 +12,7 @@
 
 // 操作码枚举
 enum Opcode {
-    ADD, SUB, MUL, FMA, FMS, FNMA, FNMS,
+    ADD, SUB, MUL, NMUL, FMA, FMS, FNMA, FNMS,
     CMPEQ, CMPLT, CMPLE, CMPGT,
     CMPLTNUM, CMPLENUM, CMPGTNUM, UNORDERED,
     CMPEQTRUE, CMPLTTRUE, CMPLETRUE, CMPGTTRUE,
@@ -40,7 +40,7 @@ struct Result {
 
 // 字符串到操作码映射
 std::map<std::string, Opcode> opcodeMap = {
-    {"ADD", ADD}, {"SUB", SUB}, {"MUL", MUL}, {"FMA", FMA}, {"FMS", FMS},
+    {"ADD", ADD}, {"SUB", SUB}, {"MUL", MUL}, {"NMUL", NMUL}, {"FMA", FMA}, {"FMS", FMS},
     {"FNMA", FNMA}, {"FNMS", FNMS}, {"CMPEQ", CMPEQ}, {"CMPLT", CMPLT},
     {"CMPLE", CMPLE}, {"CMPGT", CMPGT}, {"CMPLTNUM", CMPLTNUM},
     {"CMPLENUM", CMPLENUM}, {"CMPGTNUM", CMPGTNUM}, {"UNORDERED", UNORDERED},
@@ -92,6 +92,14 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
                     case RND_MINUS_INF: res = __dmul_rd(a, b); break;
                     case RND_PLUS_INF: res = __dmul_ru(a, b); break;
                     default: res = __dmul_rn(a, b);
+            }
+            break;
+	case NMUL:
+            switch (tc.roundMode) {
+                    case RND_ZERO: res = __dmul_rz(-a, b); break;
+                    case RND_MINUS_INF: res = __dmul_rd(-a, b); break;
+                    case RND_PLUS_INF: res = __dmul_ru(-a, b); break;
+                    default: res = __dmul_rn(-a, b);
             }
             break;
         case FMA:
