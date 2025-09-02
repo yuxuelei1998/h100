@@ -14,7 +14,9 @@
 enum Opcode {
     ADD, SUB, MUL, FMA, FMS, FNMA, FNMS,
     CMPEQ, CMPLT, CMPLE, CMPGT,
-    CMPLTNUM, CMPLENUM, CMPGTNUM, UNORDERED
+    CMPLTNUM, CMPLENUM, CMPGTNUM, UNORDERED,
+    CMPEQTRUE, CMPLTTRUE, CMPLETRUE, CMPGTTRUE,
+    UNORDEREDTRUE, TSEL
 };
 
 // 舍入模式枚举
@@ -41,7 +43,9 @@ std::map<std::string, Opcode> opcodeMap = {
     {"ADD", ADD}, {"SUB", SUB}, {"MUL", MUL}, {"FMA", FMA}, {"FMS", FMS},
     {"FNMA", FNMA}, {"FNMS", FNMS}, {"CMPEQ", CMPEQ}, {"CMPLT", CMPLT},
     {"CMPLE", CMPLE}, {"CMPGT", CMPGT}, {"CMPLTNUM", CMPLTNUM},
-    {"CMPLENUM", CMPLENUM}, {"CMPGTNUM", CMPGTNUM}, {"UNORDERED", UNORDERED}
+    {"CMPLENUM", CMPLENUM}, {"CMPGTNUM", CMPGTNUM}, {"UNORDERED", UNORDERED},
+    {"CMPEQTRUE", CMPEQTRUE}, {"CMPLTTRUE", CMPLTTRUE}, {"CMPLETRUE", CMPLETRUE},
+    {"CMPGTTRUE", CMPGTTRUE}, {"UNORDEREDTRUE", UNORDEREDTRUE}, {"TSEL", TSEL}
 };
 
 // 字符串到舍入模式映射
@@ -145,6 +149,24 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
             break;
         case UNORDERED:
             res = (isnan(a) || isnan(c)) ? __longlong_as_double(0xFFFFFFFFFFFFFFFF) : 0.0;
+            break;
+	case CMPEQTRUE:
+            res = (a == c) ? __longlong_as_double(0x4000000000000000) : 0.0;
+            break;
+        case CMPLTTRUE:
+            res = (a < c) ? __longlong_as_double(0x4000000000000000) : 0.0;
+            break;
+        case CMPLETRUE:
+            res = (a <= c) ? __longlong_as_double(0x4000000000000000) : 0.0;
+            break;
+        case CMPGTTRUE:
+            res = (a > c) ? __longlong_as_double(0x4000000000000000) : 0.0;
+            break;
+        case UNORDEREDTRUE:
+            res = (isnan(a) || isnan(c)) ? __longlong_as_double(0x4000000000000000) : 0.0;
+            break;
+        case TSEL:
+            res = (b != 0.0) ? c : a;
             break;
     }
     

@@ -14,9 +14,7 @@
 enum Opcode {
     ADD, SUB, MUL, FMA, FMS, FNMA, FNMS,
     CMPEQ, CMPLT, CMPLE, CMPGT,
-    CMPLTNUM, CMPLENUM, CMPGTNUM, UNORDERED,
-    CMPEQTRUE, CMPLTTRUE, CMPLETRUE, CMPGTTRUE,
-    UNORDEREDTRUE, TSEL
+    CMPLTNUM, CMPLENUM, CMPGTNUM, UNORDERED
 };
 
 // 舍入模式枚举
@@ -43,9 +41,7 @@ std::map<std::string, Opcode> opcodeMap = {
     {"ADD", ADD}, {"SUB", SUB}, {"MUL", MUL}, {"FMA", FMA}, {"FMS", FMS},
     {"FNMA", FNMA}, {"FNMS", FNMS}, {"CMPEQ", CMPEQ}, {"CMPLT", CMPLT},
     {"CMPLE", CMPLE}, {"CMPGT", CMPGT}, {"CMPLTNUM", CMPLTNUM},
-    {"CMPLENUM", CMPLENUM}, {"CMPGTNUM", CMPGTNUM}, {"UNORDERED", UNORDERED},
-    {"CMPEQTRUE", CMPEQTRUE}, {"CMPLTTRUE", CMPLTTRUE}, {"CMPLETRUE", CMPLETRUE},
-    {"CMPGTTRUE", CMPGTTRUE}, {"UNORDEREDTRUE", UNORDEREDTRUE}, {"TSEL", TSEL}
+    {"CMPLENUM", CMPLENUM}, {"CMPGTNUM", CMPGTNUM}, {"UNORDERED", UNORDERED}
 };
 
 // 字符串到舍入模式映射
@@ -150,24 +146,6 @@ __global__ void executeTests(const TestCase* __restrict__ testCases,
         case UNORDERED:
             res = (isnan(a) || isnan(c)) ? __int_as_float(0xFFFFFFFF) : 0.0f;
             break;
-	case CMPEQTRUE:
-            res = (a == c) ? __int_as_float(0x40000000) : 0.0f;
-            break;
-        case CMPLTTRUE:
-            res = (a < c) ? __int_as_float(0x40000000) : 0.0f;
-            break;
-        case CMPLETRUE:
-            res = (a <= c) ? __int_as_float(0x40000000) : 0.0f;
-            break;
-        case CMPGTTRUE:
-            res = (a > c) ? __int_as_float(0x40000000) : 0.0f;
-            break;
-	case UNORDEREDTRUE:
-            res = (isnan(a) || isnan(c)) ? __int_as_float(0x40000000) : 0.0f;
-            break;
-        case TSEL:
-            res = (b != 0.0f) ? c : a;
-            break;
     }
     
     // 存储结果
@@ -264,34 +242,25 @@ void writeOutputFile(const std::string& filename,
     }
 }
 
-int main() {
-    std::string inputFilename, outputFilename;
+int main(int argc, char* argv[]) {
+    std::string inputFilename = "fp32_input.txt";
+    std::string outputFilename = "h100_fp32_output.txt";
     
-    // 获取输入文件名
-    while (true) {
-        std::cout << "请输入输入文件名 (默认: fp32_input.txt): ";
-        std::getline(std::cin, inputFilename);
-        
-        if (inputFilename.empty()) {
-            inputFilename = "fp32_input.txt";
-        }
-        
-        // 检查文件是否存在
-        std::ifstream testFile(inputFilename);
-        if (testFile.good()) {
-            testFile.close();
-            break;
-        }
-        
-        std::cout << "文件 " << inputFilename << " 不存在，请重新输入。\n";
+    // 从命令行获取文件名
+    if (argc >= 2) {
+        inputFilename = argv[1];
+    }
+    if (argc >= 3) {
+        outputFilename = argv[2];
     }
     
-    // 获取输出文件名
-    std::cout << "请输入输出文件名 (默认: h100_fp32_output.txt): ";
-    std::getline(std::cin, outputFilename);
-    if (outputFilename.empty()) {
-        outputFilename = "h100_fp32_output.txt";
+    // 检查输入文件是否存在
+    std::ifstream testFile(inputFilename);
+    if (!testFile.good()) {
+        std::cerr << "错误：文件 " << inputFilename << " 不存在，程序终止。\n";
+        return 1;
     }
+    testFile.close();
     
     // 读取输入文件
     std::vector<TestCase> testCases = readInputFile(inputFilename);
@@ -339,6 +308,5 @@ int main() {
     cudaStreamDestroy(stream);
     
     std::cout << "H100 FP32 测试完成，结果已写入 " << outputFilename << std::endl;
-    //std::cout << "编译建议: nvcc -arch=sm_90 -o FP32H100 FP32H100.cu\n";
     return 0;
 }
